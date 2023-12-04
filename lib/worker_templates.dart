@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:shelf/shelf.dart';
@@ -65,7 +64,8 @@ class HttpWorkerWithAuthentication implements Worker {
   FutureOr<Response> _loginHandler(Request request) {
     final userId = Uuid().v4();
     final clientAddress = (request.context['shelf.io.connection_info'] as HttpConnectionInfo?)?.remoteAddress;
-    final identityToken = IdentityToken(userId, clientAddress);
+    final clientUserAgent = request.headers['User-Agent'];
+    final identityToken = IdentityToken(userId, clientAddress, clientUserAgent);
     final encodedToken = _identityTokenAuthority.signAndEncodeToken(identityToken);
 
     return Response.ok('Success', headers: {'token': encodedToken});

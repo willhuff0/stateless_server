@@ -7,7 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:stateless_server/server.dart';
 
 final Random _random = Random.secure();
-Uint8List makeSecureRandomKey(int bytes) => _random.nextBytes(bytes);
+Uint8List generateSecureRandomKey(int bytes) => _random.nextBytes(bytes);
 
 class IdentityTokenAuthority {
   final ServerConfig _config;
@@ -32,6 +32,7 @@ class IdentityTokenAuthority {
         userId: bodyMap['uid'] as String?,
         timestamp: timestamp,
         ipAddress: bodyMap.containsKey('ip') ? InternetAddress.tryParse(bodyMap['ip'] as String) : null,
+        userAgent: bodyMap['agent'] as String?,
       );
 
       if (DateTime.now().toUtc().difference(token.timestamp) > _config.tokenLifetime) return null;
@@ -53,7 +54,8 @@ class IdentityTokenAuthority {
       if (token.userId != null) 'uid': token.userId,
       'time': token.timestamp.toIso8601String(),
       if (token.ipAddress != null) 'ip': token.ipAddress!.address,
-      'key': makeSecureRandomKey(_config.tokenKeyLength),
+      if (token.userAgent != null) 'agent': token.userAgent,
+      'key': generateSecureRandomKey(_config.tokenKeyLength),
     };
 
     Uint8List body = utf8.encode(jsonEncode(bodyMap));
@@ -69,10 +71,11 @@ class IdentityToken {
   final String? userId;
   final DateTime timestamp;
   final InternetAddress? ipAddress;
+  final String? userAgent;
 
-  IdentityToken._({required this.userId, required this.timestamp, required this.ipAddress});
+  IdentityToken._({required this.userId, required this.timestamp, required this.ipAddress, required this.userAgent});
 
-  IdentityToken(this.userId, this.ipAddress) : timestamp = DateTime.now().toUtc();
+  IdentityToken(this.userId, this.ipAddress, this.userAgent) : timestamp = DateTime.now().toUtc();
 }
 
 extension RandomExtensions on Random {

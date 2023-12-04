@@ -5,14 +5,10 @@ import 'package:stateless_server/worker_templates.dart';
 
 void main(List<String> arguments) async {
   final config = ServerConfig();
-  final args = WorkerLaunchArgsWithAuthentication(
+  final workerLaunchArgs = WorkerLaunchArgsWithAuthentication(
     start: HttpWorkerWithAuthentication.start,
     config: config,
-    privateKey: makeSecureRandomKey(config.tokenKeyLength),
+    privateKey: generateSecureRandomKey(config.tokenKeyLength),
   );
-  final workers = await Future.wait(Iterable.generate(config.numWorkers, (index) => WorkerManager.start(args, debugName: 'Worker $index')));
-
-  while (true) {
-    await Future.delayed(Duration(days: 1));
-  }
+  await StatelessServer.start(config: config, workerLaunchArgs: workerLaunchArgs);
 }
