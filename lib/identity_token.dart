@@ -13,7 +13,7 @@ class IdentityTokenAuthority {
   final ServerConfig _config;
   final Hmac _hmac;
 
-  IdentityTokenAuthority.initialize(this._config, List<int> privateKey) : _hmac = Hmac(_config.tokenHashAlg, privateKey);
+  IdentityTokenAuthority.initializeOnIsolate(this._config, List<int> privateKey) : _hmac = Hmac(_config.tokenHashAlg, privateKey);
 
   IdentityToken? verifyAndDecodeToken(String encodedToken) {
     try {

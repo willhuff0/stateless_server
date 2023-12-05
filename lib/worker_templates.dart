@@ -8,10 +8,10 @@ import 'package:stateless_server/identity_token.dart';
 import 'package:stateless_server/worker.dart';
 import 'package:uuid/uuid.dart';
 
-class HttpWorker implements Worker {
+class HttpWorkerTemplate implements Worker {
   final HttpServer _server;
 
-  HttpWorker._(this._server, Router router) {
+  HttpWorkerTemplate._(this._server, Router router) {
     router.all('/', _handler);
   }
 
@@ -20,7 +20,7 @@ class HttpWorker implements Worker {
     final handler = Pipeline().addMiddleware(logRequests()).addHandler(router.call);
     final server = await serve(handler, args.config.address, args.config.port, shared: true);
 
-    return HttpWorker._(server, router);
+    return HttpWorkerTemplate._(server, router);
   }
 
   FutureOr<Response> _handler(Request request) {
@@ -33,12 +33,12 @@ class HttpWorker implements Worker {
   }
 }
 
-class HttpWorkerWithAuthentication implements Worker {
+class HttpWorkerWithAuthenticationTemplate implements Worker {
   final HttpServer _server;
 
   final IdentityTokenAuthority _identityTokenAuthority;
 
-  HttpWorkerWithAuthentication._(this._server, this._identityTokenAuthority, Router router) {
+  HttpWorkerWithAuthenticationTemplate._(this._server, this._identityTokenAuthority, Router router) {
     router
       ..all('/', _handler)
       ..put('/login', _loginHandler)
@@ -48,13 +48,13 @@ class HttpWorkerWithAuthentication implements Worker {
   static Future<Worker> start(WorkerLaunchArgs args, {String? debugName}) async {
     if (args is! WorkerLaunchArgsWithAuthentication) throw Exception('HttpWorkerWithAuthentication must be started with WorkerLaunchArgsWithAuthentication');
 
-    final identityTokenAuthority = IdentityTokenAuthority.initialize(args.config, args.privateKey);
+    final identityTokenAuthority = IdentityTokenAuthority.initializeOnIsolate(args.config, args.privateKey);
 
     final router = Router();
     final handler = Pipeline().addMiddleware(logRequests(logger: debugName != null ? (message, isError) => print('[$debugName] $message') : null)).addHandler(router.call);
     final server = await serve(handler, args.config.address, args.config.port, shared: true);
 
-    return HttpWorkerWithAuthentication._(server, identityTokenAuthority, router);
+    return HttpWorkerWithAuthenticationTemplate._(server, identityTokenAuthority, router);
   }
 
   FutureOr<Response> _handler(Request request) {

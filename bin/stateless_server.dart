@@ -6,7 +6,7 @@ import 'package:stateless_server/worker_templates.dart';
 void main(List<String> arguments) async {
   final config = ServerConfig();
   final workerLaunchArgs = WorkerLaunchArgsWithAuthentication(
-    start: HttpWorkerWithAuthentication.start,
+    start: HttpWorkerWithAuthenticationTemplate.start,
     config: config,
     privateKey: generateSecureRandomKey(config.tokenKeyLength),
   );
