@@ -23,20 +23,29 @@ class StatelessServer {
 
 class ServerConfig {
   /// The number of workers spawned to serve requests
-  final int numWorkers = 8;
+  final int numWorkers;
 
   /// The IP to bind workers to
-  final address = InternetAddress.anyIPv4;
+  final InternetAddress address;
 
   /// The Port to bind workers to
-  final port = 8081;
+  final int port;
 
   /// The max duration of a session
-  final tokenLifetime = Duration(hours: 8);
+  final Duration tokenLifetime;
 
   /// The hashing algorithm used to sign identity tokens
-  final tokenHashAlg = sha256;
+  final Hash tokenHashAlg;
 
   /// The length in bytes of the random keys generated for identity tokens
-  final tokenKeyLength = 256 ~/ 8;
+  final int tokenKeyLength;
+
+  ServerConfig({
+    this.numWorkers = 8,
+    InternetAddress? address,
+    this.port = 8081,
+    this.tokenLifetime = const Duration(hours: 8),
+    this.tokenHashAlg = sha256,
+    this.tokenKeyLength = 256 ~/ 8,
+  }) : address = address ?? InternetAddress.anyIPv4;
 }
