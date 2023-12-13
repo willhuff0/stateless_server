@@ -45,7 +45,7 @@ class HttpWorkerWithAuthenticationTemplate implements Worker {
       ..get('/uid', _getUsernameHandler);
   }
 
-  static Future<Worker> start(WorkerLaunchArgs args, {String? debugName}) async {
+  static Future<Worker> start(WorkerLaunchArgs args, Stream<dynamic> fromManagerStream, {String? debugName}) async {
     if (args is! WorkerLaunchArgsWithAuthentication) throw Exception('HttpWorkerWithAuthentication must be started with WorkerLaunchArgsWithAuthentication');
 
     final identityTokenAuthority = IdentityTokenAuthority.initializeOnIsolate(args.config, args.privateKey);

@@ -8,13 +8,13 @@ import 'package:stateless_server/server.dart';
 
 class WorkerManager {
   final Isolate _isolate;
-  final Stream<dynamic> _fromIsolatePort;
-  final SendPort _toIsolatePort;
+  final Stream<dynamic> fromIsolateStream;
+  final SendPort toIsolatePort;
 
   late final StreamSubscription _fromIsolateSubscription;
 
-  WorkerManager._(this._isolate, this._fromIsolatePort, this._toIsolatePort) {
-    _fromIsolateSubscription = _fromIsolatePort.listen((message) {});
+  WorkerManager._(this._isolate, this.fromIsolateStream, this.toIsolatePort) {
+    _fromIsolateSubscription = fromIsolateStream.listen((message) {});
   }
 
   static Future<WorkerManager> start(WorkerLaunchArgs args, {String? debugName}) async {
@@ -30,19 +30,19 @@ class WorkerManager {
   }
 
   Future<void> shutdown() async {
-    _toIsolatePort.send('shutdown');
+    toIsolatePort.send('shutdown');
   }
 }
 
 class WorkerIsolate {
   final Worker _worker;
-  final ReceivePort _fromManagerPort;
+  final Stream<dynamic> _fromManagerStream;
   final SendPort _toManagerPort;
 
   late final StreamSubscription _fromManagerSubscription;
 
-  WorkerIsolate._(this._worker, this._fromManagerPort, this._toManagerPort) {
-    _fromManagerSubscription = _fromManagerPort.listen((message) {
+  WorkerIsolate._(this._worker, this._fromManagerStream, this._toManagerPort) {
+    _fromManagerSubscription = _fromManagerStream.listen((message) {
       switch (message) {
         case 'shutdown':
           _shutdown();
@@ -54,10 +54,11 @@ class WorkerIsolate {
   static Future<WorkerIsolate> spawn(SendPort toManagerPort, WorkerLaunchArgs args, {String? debugName}) async {
     final fromManagerPort = ReceivePort();
     toManagerPort.send(fromManagerPort.sendPort);
+    final fromManagerStream = fromManagerPort.asBroadcastStream();
 
-    final worker = await args.start(args, debugName: debugName);
+    final worker = await args.start(args, fromManagerStream, debugName: debugName);
 
-    return WorkerIsolate._(worker, fromManagerPort, toManagerPort);
+    return WorkerIsolate._(worker, fromManagerStream, toManagerPort);
   }
 
   Future<void> _shutdown() async {
@@ -71,7 +72,7 @@ abstract interface class Worker {
 }
 
 class WorkerLaunchArgs {
-  Future<Worker> Function(WorkerLaunchArgs args, {String? debugName}) start;
+  Future<Worker> Function(WorkerLaunchArgs args, Stream<dynamic> fromManagerStream, {String? debugName}) start;
   final ServerConfig config;
 
   WorkerLaunchArgs({required this.start, required this.config});

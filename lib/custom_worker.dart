@@ -6,17 +6,18 @@ import 'package:stateless_server/stateless_server.dart';
 // This needs to be rethought
 
 class CustomWorker implements Worker {
+  final CustomWorkerLaunchArgs _args;
   final HttpServer _server;
   final Router _router;
   final CustomThreadData _threadData;
 
-  CustomWorker._(this._server, this._router, this._threadData, List<CustomHandlerBase> customHandlers) {
-    for (final customHandler in customHandlers) {
+  CustomWorker._(this._server, this._router, this._threadData, this._args) {
+    for (final customHandler in _args.customHandlers) {
       addCustomHandler(customHandler);
     }
   }
 
-  static Future<Worker> start(WorkerLaunchArgs args, {String? debugName}) async {
+  static Future<Worker> start(WorkerLaunchArgs args, Stream<dynamic> fromManagerStream, {String? debugName}) async {
     if (args is! CustomWorkerLaunchArgs) throw Exception('CustomWorker must be started with CustomWorkerLaunchArgs');
 
     final threadData = await args.createThreadData();
@@ -25,7 +26,7 @@ class CustomWorker implements Worker {
     final handler = Pipeline().addMiddleware(logRequests(logger: debugName != null ? (message, isError) => print('[$debugName] $message') : null)).addHandler(router.call);
     final server = await serve(handler, args.config.address, args.config.port, shared: true);
 
-    return CustomWorker._(server, router, threadData, args.customHandlers);
+    return CustomWorker._(server, router, threadData, args);
   }
 
   void addCustomHandler(CustomHandlerBase customHandler) => _router.all(customHandler.path, customHandler.createHandler(_threadData));
@@ -33,6 +34,7 @@ class CustomWorker implements Worker {
   @override
   Future shutdown() async {
     await _server.close();
+    _args.onClose(_threadData);
   }
 }
 
@@ -80,10 +82,12 @@ class CustomThreadDataWithAuth extends CustomThreadData {
 class CustomWorkerLaunchArgs extends WorkerLaunchArgs {
   final FutureOr<CustomThreadData> Function() createThreadData;
   final List<CustomHandlerBase> customHandlers;
+  final FutureOr<void> Function(CustomThreadData threadData) onClose;
 
   CustomWorkerLaunchArgs({
     required super.config,
     required this.createThreadData,
+    required this.onClose,
     this.customHandlers = const [],
   }) : super(start: CustomWorker.start);
 }
